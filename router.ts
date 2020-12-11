@@ -8,10 +8,16 @@ function parse(
 ): { keys: string[] | boolean; pattern: RegExp } {
   if (str instanceof RegExp) return { keys: false, pattern: str };
   // XXX(PERF): Add explicit checks for root `/` to improve perf.
-  var c, o, tmp, ext, keys = [], pattern = "", arr = str.split("/");
+  var c,
+    o,
+    tmp,
+    ext,
+    keys = [],
+    pattern = "",
+    arr = str.split("/");
   arr[0] || arr.shift();
 
-  while (tmp = arr.shift()) {
+  while ((tmp = arr.shift())) {
     c = tmp[0];
     if (c === "*") {
       keys.push("wild");
@@ -29,7 +35,7 @@ function parse(
 
   return {
     keys: keys,
-    pattern: new RegExp("^" + pattern + (loose ? "(?=$|\/)" : "\/?$"), "i"),
+    pattern: new RegExp("^" + pattern + (loose ? "(?=$|/)" : "/?$"), "i"),
   };
 }
 
@@ -89,7 +95,8 @@ export default class Router {
     const server = serve({ port });
     for await (const req of server) {
       if (this.routes.length > 0) {
-        var i = 0, len = this.routes.length;
+        var i = 0,
+          len = this.routes.length;
         while (i < len) {
           var r = this.routes[i];
           i++;
