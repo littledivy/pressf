@@ -2,7 +2,7 @@ import { serve, ServerRequest } from "https://deno.land/std/http/server.ts";
 
 type Params = { [key: string]: string };
 
-function parse(
+export function parse(
   str: RegExp | string,
   loose?: boolean,
 ): { keys: string[] | boolean; pattern: RegExp } {

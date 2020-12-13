@@ -1,4 +1,4 @@
-import PressF from "./pressf.ts";
+import PressF from "../pressf.ts";
 
 const ctx = new PressF();
 ctx.get("/", (ctx) => {
