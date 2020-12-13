@@ -23,8 +23,9 @@ jobs:
         run: deno fmt --check
       
       - name: Test
+	if: matrix.os == 'ubuntu-latest'
         run: |
-          deno run -A ./examples/router.ts
+          deno run -A ./examples/router.ts &
           sleep 10
           kill $!
 
