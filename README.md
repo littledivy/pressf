@@ -7,7 +7,7 @@ A tiny and fast router framework built on top of `std/http`. Very lightweight. E
 ## Usage
 
 ```typescript
-import PressF from "./pressf.ts";
+import PressF from "https://deno.land/x/pressf/pressf.ts";
 
 const app = new PressF();
 app.get("/", (ctx) => {
@@ -26,6 +26,34 @@ await app.listen(8080);
 | **PressF** | 0.1.0   |    12,346.01 |
 | Oak        | 6.3.2   |      5077.04 |
 | Abc        | 1.2.3   |      4049.85 |
+
+## Middlewares
+
+#### `static` - Minimal Static file server middleware. 
+
+```typescript
+import PressF from "https://deno.land/x/pressf/pressf.ts";
+import serveStatic from "https://deno.land/x/pressf/middlewares/pressf-static/mod.ts";
+
+const app = new PressF();
+app.use(serveStatic("static", "./examples"));
+
+await app.listen(8080);
+```
+
+#### `logger` - Configurable request logging middleware 
+
+> Adapted from [ABC](https://deno.land/x/abc)
+
+```typescript
+import PressF from "https://deno.land/x/pressf/pressf.ts";
+import logger from "https://deno.land/x/pressf/middlewares/pressf-logger/mod.ts";
+
+const app = new PressF();
+app.use(logger());
+
+await app.listen(8080);
+```
 
 ## LICENSE
 
