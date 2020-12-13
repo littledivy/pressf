@@ -1,6 +1,6 @@
-import PressF from "../pressf.ts";
+import PressF, { Context } from "../pressf.ts";
 
-let router = new PressF();
-router.get("/", (req: any) => req.respond({ body: "Hello" }));
+const router = new PressF();
+router.get("/", (req: Context) => req.respond({ body: "Hello" }));
 
 router.listen(1234);
