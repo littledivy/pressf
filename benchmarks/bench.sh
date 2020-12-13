@@ -1,5 +1,5 @@
 # TODO: Add more benchmarks
-declare -a arr=("pressf.ts"  "oak.ts" "abc.ts")
+declare -a arr=("pressf.ts"  "oak.ts" "abc.ts" "drash.ts" "opine.ts")
 
 echo Running benchmarks
 
