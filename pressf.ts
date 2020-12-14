@@ -32,7 +32,6 @@ export function parse(
       pattern += !!~o && !~ext ? "(?:/([^/]+?))?" : "/([^/]+?)";
       // deno-lint-ignore no-extra-boolean-cast
       if (!!~ext) pattern += (!!~o ? "?" : "") + "\\" + c.substring(ext);
-      keys.push();
     } else {
       pattern += "/" + c;
     }
