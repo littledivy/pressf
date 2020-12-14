@@ -18,22 +18,23 @@ export function parse(
   var len = arr.length;
   var i = 0, c, keys = [], pattern = "";
   while (i < len) {
-    c = arr[i];
+    var t = arr[i];
+    c = t[0];
     i++;
     if (c === "*") {
       keys.push("wild");
       pattern += "/(.*)";
     } else if (c === ":") {
-      var o = c.indexOf("?", 1);
-      var ext = c.indexOf(".", 1);
+      var o = t.indexOf("?", 1);
+      var ext = t.indexOf(".", 1);
       // Double negation turn out to be faster than Boolean() casts
       // deno-lint-ignore no-extra-boolean-cast
-      keys.push(c.substring(1, !!~o ? o : !!~ext ? ext : c.length));
+      keys.push(t.substring(1, !!~o ? o : !!~ext ? ext : t.length));
       pattern += !!~o && !~ext ? "(?:/([^/]+?))?" : "/([^/]+?)";
       // deno-lint-ignore no-extra-boolean-cast
-      if (!!~ext) pattern += (!!~o ? "?" : "") + "\\" + c.substring(ext);
+      if (!!~ext) pattern += (!!~o ? "?" : "") + "\\" + t.substring(ext);
     } else {
-      pattern += "/" + c;
+      pattern += "/" + t;
     }
   }
 
