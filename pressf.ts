@@ -2,37 +2,38 @@ import { serve, ServerRequest } from "https://deno.land/std/http/server.ts";
 
 type Params = { [key: string]: string };
 
+// Common pre-parsed routes
+const rootParse = { keys: false, pattern: /^\/\/\/?$/i };
+const wildParse = { keys: ["wild"], pattern: /^\/(.*)\/?$/i };
+
+// Adapted from https://github.com/lukeed/regexparam/blob/master/src/index.js
 export function parse(
   str: RegExp | string,
   loose?: boolean,
 ): { keys: string[] | boolean; pattern: RegExp } {
   if (str instanceof RegExp) return { keys: false, pattern: str };
-  // XXX(PERF): Add explicit checks for root `/` to improve perf.
-  var c,
-    o,
-    tmp,
-    ext,
-    keys = [],
-    pattern = "",
-    arr = str.split("/");
-  arr[0] || arr.shift();
-
-  while ((tmp = arr.shift())) {
-    c = tmp[0];
+  if (str === "/") return rootParse;
+  else if (str === "*") return wildParse;
+  var arr = str.split("/");
+  var len = arr.length;
+  var i = 0, c, keys = [], pattern = "";
+  while (i < len) {
+    c = arr[i];
+    i++;
     if (c === "*") {
       keys.push("wild");
       pattern += "/(.*)";
     } else if (c === ":") {
-      o = tmp.indexOf("?", 1);
-      ext = tmp.indexOf(".", 1);
+      var o = c.indexOf("?", 1);
+      var ext = c.indexOf(".", 1);
       // Double negation turn out to be faster than Boolean() casts
       // deno-lint-ignore no-extra-boolean-cast
-      keys.push(tmp.substring(1, !!~o ? o : !!~ext ? ext : tmp.length));
+      keys.push(c.substring(1, !!~o ? o : !!~ext ? ext : c.length));
       pattern += !!~o && !~ext ? "(?:/([^/]+?))?" : "/([^/]+?)";
       // deno-lint-ignore no-extra-boolean-cast
-      if (!!~ext) pattern += (!!~o ? "?" : "") + "\\" + tmp.substring(ext);
+      if (!!~ext) pattern += (!!~o ? "?" : "") + "\\" + c.substring(ext);
     } else {
-      pattern += "/" + tmp;
+      pattern += "/" + c;
     }
   }
 
