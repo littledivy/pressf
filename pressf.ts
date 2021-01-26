@@ -117,14 +117,14 @@ export default class Router {
             }
           }
           if (!r.pattern) {
-            r.handlers.forEach((fn: RouteFn) =>
-              fn(Object.assign(req, { params }) as Context)
+            r.handlers.forEach(async (fn: RouteFn) =>
+              await fn(Object.assign(req, { params }) as Context)
             );
             continue;
           }
           if (r.pattern.test(req.url) && req.method == r.method) {
-            r.handlers.forEach((fn: RouteFn) =>
-              fn(Object.assign(req, { params }) as Context)
+            r.handlers.forEach(async (fn: RouteFn) =>
+              await fn(Object.assign(req, { params }) as Context)
             );
           }
         }
