@@ -1,18 +1,20 @@
 ## `pressf`
 
-A tiny and fast router framework built on top of `std/http`. Very lightweight. Every line of code is optimised for better performance. Low overhead compared to other frameworks.
+A tiny and fast router framework built on top of `std/http`. Very lightweight.
+Every line of code is optimised for better performance. Low overhead compared to
+other frameworks.
 
 ## Usage
 
 ```typescript
-import PressF from "https://deno.land/x/pressf/pressf.ts";
+import PressF from "https://deno.land/x/pressf/pressf.ts"
 
-const app = new PressF();
+const app = new PressF()
 app.get("/", (ctx) => {
-  ctx.respond({ body: "Hello World!" });
-});
+  ctx.respond({ body: "Hello World!" })
+})
 
-await app.listen(8080);
+await app.listen(8080)
 ```
 
 ## Benchmarks
@@ -27,30 +29,30 @@ await app.listen(8080);
 
 ## Middlewares
 
-#### `static` - Minimal Static file server middleware. 
+#### `static` - Minimal Static file server middleware.
 
 ```typescript
-import PressF from "https://deno.land/x/pressf/pressf.ts";
-import serveStatic from "https://deno.land/x/pressf/middlewares/pressf-static/mod.ts";
+import PressF from "https://deno.land/x/pressf/pressf.ts"
+import serveStatic from "https://deno.land/x/pressf/middlewares/pressf-static/mod.ts"
 
-const app = new PressF();
-app.use(serveStatic("static", "./examples"));
+const app = new PressF()
+app.use(serveStatic("./examples/static"))
 
-await app.listen(8080);
+await app.listen(8080)
 ```
 
-#### `logger` - Configurable request logging middleware 
+#### `logger` - Configurable request logging middleware
 
 > Adapted from [ABC](https://deno.land/x/abc)
 
 ```typescript
-import PressF from "https://deno.land/x/pressf/pressf.ts";
-import logger from "https://deno.land/x/pressf/middlewares/pressf-logger/mod.ts";
+import PressF from "https://deno.land/x/pressf/pressf.ts"
+import logger from "https://deno.land/x/pressf/middlewares/pressf-logger/mod.ts"
 
-const app = new PressF();
-app.use(logger());
+const app = new PressF()
+app.use(logger())
 
-await app.listen(8080);
+await app.listen(8080)
 ```
 
 ## LICENSE
