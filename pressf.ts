@@ -3,7 +3,7 @@ import { serve, ServerRequest } from "https://deno.land/std/http/server.ts";
 type Params = { [key: string]: string };
 
 // Common pre-parsed routes
-const rootParse = { keys: [], pattern: /^\/\/\/?$/i };
+const rootParse = { keys: [], pattern: /^\/?$/i };
 const wildParse = { keys: ["wild"], pattern: /^\/(.*)\/?$/i };
 
 // Adapted from https://github.com/lukeed/regexparam/blob/master/src/index.js
@@ -99,32 +99,33 @@ export default class Router {
     const server = serve({ port });
     for await (const req of server) {
       if (this.routes.length > 0) {
-        const len = this.routes.length;
-        for (let i = 0; i < len; i++) {
-          const r = this.routes[i];
-          const params: Params = {};
-          // NOTE: We're caching length here.
-          const keyLength = r.keys.length;
-          if (keyLength > 0 && r.pattern) {
-            const matches = r.pattern.exec(req.url);
-            if (matches) {
-              for (let inc = 0; inc < keyLength; inc++) {
-                params[r.keys[inc]] = matches[inc];
-              }
-            }
-          }
-          if (!r.pattern) {
-            r.handlers.forEach(async (fn: RouteFn) =>
-              await fn(Object.assign(req, { params }) as Context)
-            );
-            continue;
-          }
-          if (r.pattern.test(req.url) && req.method == r.method) {
-            r.handlers.forEach(async (fn: RouteFn) =>
-              await fn(Object.assign(req, { params }) as Context)
-            );
-          }
+        invokeHandlers(this.routes, req);
+      }
+    }
+  }
+}
+
+async function invokeHandlers(routes: Route[], req: ServerRequest) {
+  const len = routes.length;
+  for (let i = 0; i < len; i++) {
+    const r = routes[i];
+    const params: Params = {};
+    // NOTE: We're caching length here.
+    const keyLength = r.keys.length;
+    if (keyLength > 0 && r.pattern) {
+      const matches = r.pattern.exec(req.url);
+      if (matches) {
+        for (let inc = 0; inc < keyLength; inc++) {
+          params[r.keys[inc]] = matches[inc];
         }
+      }
+    }
+    if (
+      r.pattern === undefined ||
+      (r.pattern.test(req.url) && req.method == r.method)
+    ) {
+      for (const fn of r.handlers) {
+        await fn(Object.assign(req, { params }));
       }
     }
   }
