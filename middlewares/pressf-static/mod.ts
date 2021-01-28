@@ -1,5 +1,5 @@
 import { Context, parse } from "../../pressf.ts";
-import { join } from "https://deno.land/std@0.80.0/path/mod.ts";
+import { join } from "https://deno.land/std@0.84.0/path/mod.ts";
 import { lookup } from "https://deno.land/x/media_types@v2.7.1/mod.ts";
 
 /**
@@ -10,7 +10,6 @@ export default (root: string, { prefix = "", home = "index.html" }: {
   home?: string;
 } = {}) => {
   const routePattern = parse(`${prefix}/*`).pattern;
-
   return async (ctx: Context) => {
     const matches = routePattern.exec(ctx.url);
     if (
@@ -29,9 +28,9 @@ export default (root: string, { prefix = "", home = "index.html" }: {
         if (info.mtime) {
           headers.set("last-modified", info.mtime.toUTCString());
         }
-        ctx.respond({ body: r, headers });
+        await ctx.respond({ body: r, headers });
       } catch {
-        ctx.respond({ status: 404 });
+        await ctx.respond({ status: 404 });
       }
     }
   };
