@@ -16,22 +16,18 @@ export default (root: string, { prefix = "", home = "index.html" }: {
       matches && matches.length == 2 &&
       (ctx.method === "HEAD" || ctx.method === "GET")
     ) {
-      try {
-        const path = join(root, matches[1] === "" ? home : matches[1]);
-        const r = await Deno.readFile(path);
-        const info = await Deno.stat(path);
-        const headers = new Headers();
-        const contentType = lookup(path);
-        if (contentType) {
-          headers.set("content-type", contentType);
-        }
-        if (info.mtime) {
-          headers.set("last-modified", info.mtime.toUTCString());
-        }
-        await ctx.respond({ body: r, headers });
-      } catch {
-        await ctx.respond({ status: 404 });
+      const path = join(root, matches[1] === "" ? home : matches[1]);
+      const file = await Deno.readFile(path);
+      const info = await Deno.stat(path);
+      const headers = new Headers();
+      const contentType = lookup(path);
+      if (contentType) {
+        headers.set("content-type", contentType);
       }
+      if (info.mtime) {
+        headers.set("last-modified", info.mtime.toUTCString());
+      }
+      await ctx.respond({ body: file, headers });
     }
   };
 };

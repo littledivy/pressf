@@ -44,9 +44,34 @@ export function parse(
   };
 }
 
+export async function invokeHandlers(routes: Route[], ctx: Context) {
+  const len = routes.length;
+  for (let i = 0; i < len; i++) {
+    const r = routes[i];
+    // NOTE: We're caching length here.
+    const keyLength = r.keys.length;
+    if (keyLength > 0 && r.pattern) {
+      const matches = r.pattern.exec(ctx.url);
+      if (matches) {
+        for (let inc = 0; inc < keyLength; inc++) {
+          ctx.params[r.keys[inc]] = matches[inc];
+        }
+      }
+    }
+    if (
+      r.pattern === undefined ||
+      (r.pattern.test(ctx.url) && ctx.method == r.method)
+    ) {
+      for (const fn of r.handlers) {
+        await fn(ctx);
+      }
+    }
+  }
+}
+
 type RouteFn = (ctx: Context) => void;
 type RoutePattern = RegExp;
-export type Context = ServerRequest & { params: Params };
+export type Context = ServerRequest & { params: Params } & { error?: Error };
 type Method =
   | "ALL"
   | "GET"
@@ -70,6 +95,14 @@ type Route = {
 
 export default class Router {
   routes: Route[] = [];
+  errorHandler: (ctx: Context) => void = async (ctx) => {
+    if (ctx.error instanceof Deno.errors.NotFound) {
+      await ctx.respond({ status: 404 });
+    } else {
+      console.error(ctx.error);
+      await ctx.respond({ status: 500 });
+    }
+  };
 
   // NOTE: Using .bind can significantly increase perf compared to arrow functions.
   public all = this.add.bind(this, "ALL");
@@ -83,50 +116,23 @@ export default class Router {
   public post = this.add.bind(this, "POST");
   public put = this.add.bind(this, "PUT");
 
-  // Applies the handlers to all methods and urls
   public use(...handlers: RouteFn[]) {
     this.routes.push({ keys: [], method: "ALL", handlers });
     return this;
   }
 
   public add(method: Method, route: string | RegExp, ...handlers: RouteFn[]) {
-    let { keys, pattern } = parse(route);
-    this.routes.push({ keys, method, handlers, pattern });
+    this.routes.push({ method, handlers, ...parse(route) });
     return this;
   }
 
   async listen(port: number) {
     const server = serve({ port });
     for await (const req of server) {
-      if (this.routes.length > 0) {
-        invokeHandlers(this.routes, req);
-      }
-    }
-  }
-}
-
-async function invokeHandlers(routes: Route[], req: ServerRequest) {
-  const len = routes.length;
-  for (let i = 0; i < len; i++) {
-    const r = routes[i];
-    const params: Params = {};
-    // NOTE: We're caching length here.
-    const keyLength = r.keys.length;
-    if (keyLength > 0 && r.pattern) {
-      const matches = r.pattern.exec(req.url);
-      if (matches) {
-        for (let inc = 0; inc < keyLength; inc++) {
-          params[r.keys[inc]] = matches[inc];
-        }
-      }
-    }
-    if (
-      r.pattern === undefined ||
-      (r.pattern.test(req.url) && req.method == r.method)
-    ) {
-      for (const fn of r.handlers) {
-        await fn(Object.assign(req, { params }));
-      }
+      const ctx = Object.assign(req, { params: {} });
+      invokeHandlers(this.routes, ctx).catch((err) =>
+        this.errorHandler(Object.assign(ctx, { error: err }))
+      );
     }
   }
 }
