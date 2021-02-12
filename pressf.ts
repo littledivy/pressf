@@ -97,10 +97,10 @@ export default class Router {
   routes: Route[] = [];
   errorHandler: (ctx: Context) => void = async (ctx) => {
     if (ctx.error instanceof Deno.errors.NotFound) {
-      await ctx.respond({ status: 404 });
+      await ctx.respond({ status: 404 }).catch(() => {});
     } else {
       console.error(ctx.error);
-      await ctx.respond({ status: 500 });
+      await ctx.respond({ status: 500 }).catch(() => {});
     }
   };
 
