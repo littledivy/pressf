@@ -91,7 +91,7 @@ type Route = {
 };
 
 export default class Router {
-  private routes: Route[] = [];
+  public routes: Route[] = [];
   public errorHandler: (ctx: Context) => void = async (ctx) => {
     // NOTE: The try...catch statement is necessary for BrokenPipe errors.
     try {
