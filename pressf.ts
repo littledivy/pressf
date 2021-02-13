@@ -2,7 +2,7 @@ import { serve, ServerRequest } from "https://deno.land/std/http/server.ts";
 
 type Params = { [key: string]: string };
 
-// Common pre-parsed routes
+// Common pre-parsed routes:
 const rootParse = { keys: [], pattern: /^\/?$/i };
 const wildParse = { keys: ["wild"], pattern: /^\/(.*)\/?$/i };
 
@@ -27,7 +27,7 @@ export function parse(
     } else if (c === ":") {
       const o = t.indexOf("?", 1);
       const ext = t.indexOf(".", 1);
-      // Double negation turn out to be faster than Boolean() casts
+      // Double negation turns out to be faster than Boolean() casts.
       // deno-lint-ignore no-extra-boolean-cast
       keys.push(t.substring(1, !!~o ? o : !!~ext ? ext : t.length));
       pattern += !!~o && !~ext ? "(?:/([^/]+?))?" : "/([^/]+?)";
@@ -60,7 +60,7 @@ export async function invokeHandlers(routes: Route[], ctx: Context) {
     }
     if (
       r.pattern === undefined ||
-      (ctx.method == r.method && r.pattern.test(ctx.url))
+      (ctx.method === r.method && r.pattern.test(ctx.url))
     ) {
       for (const fn of r.handlers) {
         await fn(ctx);
@@ -84,7 +84,7 @@ type Method =
   | "PUT"
   | "TRACE";
 
-// A Route is a route when it has a routepattern otherwise it is treated as a middleware.
+// A Route is a route when it has a route pattern otherwise it is treated as a middleware.
 type Route = {
   pattern?: RoutePattern;
   method: Method;
@@ -95,7 +95,7 @@ type Route = {
 export default class Router {
   routes: Route[] = [];
   errorHandler: (ctx: Context) => void = async (ctx) => {
-    // Add try...catch statement for BrokenPipe Error
+    // Add try...catch statement for BrokenPipe Error.
     try {
       if (ctx.error instanceof Deno.errors.NotFound) {
         await ctx.respond({ status: 404 });
@@ -118,7 +118,7 @@ export default class Router {
   public put = this.add.bind(this, "PUT");
   public trace = this.add.bind(this, "TRACE");
 
-  // Applies the handlers to all methods and urls
+  // Adds middleware: Applies the handlers to all methods and routes.
   public use(...handlers: RouteFn[]) {
     this.routes.push({ keys: [], method: "ALL", handlers });
     return this;
