@@ -60,7 +60,7 @@ export async function invokeHandlers(routes: Route[], ctx: Context) {
     }
     if (
       r.pattern === undefined ||
-      (r.pattern.test(ctx.url) && ctx.method == r.method)
+      (ctx.method == r.method && r.pattern.test(ctx.url))
     ) {
       for (const fn of r.handlers) {
         await fn(ctx);
@@ -118,6 +118,7 @@ export default class Router {
   public put = this.add.bind(this, "PUT");
   public trace = this.add.bind(this, "TRACE");
 
+  // Applies the handlers to all methods and urls
   public use(...handlers: RouteFn[]) {
     this.routes.push({ keys: [], method: "ALL", handlers });
     return this;
