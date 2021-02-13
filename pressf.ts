@@ -1,7 +1,5 @@
 import { serve, ServerRequest } from "https://deno.land/std/http/server.ts";
 
-type Params = { [key: string]: string };
-
 // Common pre-parsed routes:
 const rootParse = { keys: [], pattern: /^\/?$/i };
 const wildParse = { keys: ["wild"], pattern: /^\/(.*)\/?$/i };
@@ -13,7 +11,7 @@ export function parse(
 ): { keys: string[]; pattern: RegExp } {
   if (str instanceof RegExp) return { keys: [], pattern: str };
   if (str === "/") return rootParse;
-  else if (str === "*") return wildParse;
+  if (str === "*") return wildParse;
   const arr = str[0] === "/" ? str.slice(1).split("/") : str.split("/");
   const keys = [];
   const len = arr.length;
@@ -69,9 +67,10 @@ export async function invokeHandlers(routes: Route[], ctx: Context) {
   }
 }
 
+export type Context = ServerRequest & { params: Params } & { error?: Error };
+type Params = { [key: string]: string };
 type RouteFn = (ctx: Context) => void;
 type RoutePattern = RegExp;
-export type Context = ServerRequest & { params: Params } & { error?: Error };
 type Method =
   | "ALL"
   | "CONNECT"
@@ -83,7 +82,6 @@ type Method =
   | "POST"
   | "PUT"
   | "TRACE";
-
 // A Route is a route when it has a route pattern otherwise it is treated as a middleware.
 type Route = {
   pattern?: RoutePattern;
@@ -95,7 +93,7 @@ type Route = {
 export default class Router {
   routes: Route[] = [];
   errorHandler: (ctx: Context) => void = async (ctx) => {
-    // Add try...catch statement for BrokenPipe Error.
+    // NOTE: The try...catch statement is necessary for BrokenPipe errors.
     try {
       if (ctx.error instanceof Deno.errors.NotFound) {
         await ctx.respond({ status: 404 });
