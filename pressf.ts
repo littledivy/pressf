@@ -81,8 +81,8 @@ type Method =
   | "OPTIONS"
   | "PATCH"
   | "POST"
-  | "PUT";
-| | "TRACE";
+  | "PUT"
+  | "TRACE";
 
 // A Route is a route when it has a routepattern otherwise it is treated as a middleware.
 type Route = {
@@ -95,25 +95,28 @@ type Route = {
 export default class Router {
   routes: Route[] = [];
   errorHandler: (ctx: Context) => void = async (ctx) => {
-    if (ctx.error instanceof Deno.errors.NotFound) {
-      await ctx.respond({ status: 404 }).catch(() => {});
-    } else {
-      console.error(ctx.error);
-      await ctx.respond({ status: 500 }).catch(() => {});
-    }
+    // Add try...catch statement for BrokenPipe Error
+    try {
+      if (ctx.error instanceof Deno.errors.NotFound) {
+        await ctx.respond({ status: 404 });
+      } else {
+        console.error(ctx.error);
+        await ctx.respond({ status: 500 });
+      }
+    } catch {}
   };
 
   // NOTE: Using .bind can significantly increase perf compared to arrow functions.
   public all = this.add.bind(this, "ALL");
-  public get = this.add.bind(this, "GET");
-  public head = this.add.bind(this, "HEAD");
-  public patch = this.add.bind(this, "PATCH");
-  public options = this.add.bind(this, "OPTIONS");
   public connect = this.add.bind(this, "CONNECT");
   public delete = this.add.bind(this, "DELETE");
-  public trace = this.add.bind(this, "TRACE");
+  public get = this.add.bind(this, "GET");
+  public head = this.add.bind(this, "HEAD");
+  public options = this.add.bind(this, "OPTIONS");
+  public patch = this.add.bind(this, "PATCH");
   public post = this.add.bind(this, "POST");
   public put = this.add.bind(this, "PUT");
+  public trace = this.add.bind(this, "TRACE");
 
   public use(...handlers: RouteFn[]) {
     this.routes.push({ keys: [], method: "ALL", handlers });
