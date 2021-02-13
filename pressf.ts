@@ -74,16 +74,15 @@ type RoutePattern = RegExp;
 export type Context = ServerRequest & { params: Params } & { error?: Error };
 type Method =
   | "ALL"
-  | "GET"
-  | "POST"
-  | "HEAD"
-  | "PATCH"
-  | "OPTIONS"
   | "CONNECT"
   | "DELETE"
-  | "TRACE"
+  | "GET"
+  | "HEAD"
+  | "OPTIONS"
+  | "PATCH"
   | "POST"
   | "PUT";
+| | "TRACE";
 
 // A Route is a route when it has a routepattern otherwise it is treated as a middleware.
 type Route = {
