@@ -91,8 +91,8 @@ type Route = {
 };
 
 export default class Router {
-  routes: Route[] = [];
-  errorHandler: (ctx: Context) => void = async (ctx) => {
+  private routes: Route[] = [];
+  public errorHandler: (ctx: Context) => void = async (ctx) => {
     // NOTE: The try...catch statement is necessary for BrokenPipe errors.
     try {
       if (ctx.error instanceof Deno.errors.NotFound) {
