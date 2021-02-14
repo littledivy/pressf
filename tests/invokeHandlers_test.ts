@@ -1,4 +1,5 @@
 import { Context, invokeHandlers, parse } from "../pressf.ts";
+import { ServerRequest } from "https://deno.land/std/http/server.ts";
 import { assertEquals } from "https://deno.land/std@0.84.0/testing/asserts.ts";
 import { delay } from "https://deno.land/std@0.84.0/async/delay.ts";
 
@@ -6,7 +7,9 @@ type RouteFn = (ctx: Context) => void;
 
 const store: string[] = [];
 const routes: any = [];
-const req1 = { url: "/", method: "GET" } as any;
+const req1 = new ServerRequest();
+req1.url = "/";
+req1.method = "GET";
 
 function add(
   routes: any[],
@@ -42,7 +45,14 @@ add(
   async (ctx) => await storeStringDelayed("second", 0),
 );
 
-await invokeHandlers(routes, { ...req1, params: {} });
+await invokeHandlers(
+  routes,
+  Object.assign(req1, {
+    params: {},
+    error: Promise.resolve(null),
+    isDone: false,
+  }),
+);
 
 Deno.test("call invokeHandlers", function () {
   assertEquals(store, ["first", "second"]);
