@@ -43,6 +43,7 @@ export function parse(
 }
 
 export async function invokeHandlers(routes: Route[], ctx: Context) {
+  ctx.done.then(() => ctx.isDone = true);
   const len = routes.length;
   for (let i = 0; i < len; i++) {
     const r = routes[i];
@@ -51,9 +52,8 @@ export async function invokeHandlers(routes: Route[], ctx: Context) {
     if (keyLength > 0 && r.pattern) {
       const matches = r.pattern.exec(ctx.url);
       if (matches) {
-        for (let inc = 0; inc < keyLength; inc++) {
-          ctx.params[r.keys[inc]] = matches[inc];
-        }
+        let inc = 0;
+        while (inc < keyLength) ctx.params[r.keys[inc]] = matches[++inc];
       }
     }
     if (
@@ -61,13 +61,28 @@ export async function invokeHandlers(routes: Route[], ctx: Context) {
       (ctx.method === r.method && r.pattern.test(ctx.url))
     ) {
       for (const fn of r.handlers) {
-        await fn(ctx);
+        try {
+          await fn(ctx);
+          if (ctx.isDone) return;
+        } catch (err) {
+          if (err instanceof Deno.errors.BrokenPipe) {
+            console.error(err);
+            return;
+          }
+          ctx.error = Promise.reject(err);
+        }
       }
     }
   }
 }
 
-export type Context = ServerRequest & { params: Params } & { error?: Error };
+export type Context =
+  & ServerRequest
+  & { params: Params }
+  & { isDone: Boolean }
+  & {
+    error: Promise<null>;
+  };
 type Params = { [key: string]: string };
 type RouteFn = (ctx: Context) => void;
 type RoutePattern = RegExp;
@@ -92,17 +107,6 @@ type Route = {
 
 export default class Router {
   public routes: Route[] = [];
-  public errorHandler: (ctx: Context) => void = async (ctx) => {
-    // NOTE: The try...catch statement is necessary for BrokenPipe errors.
-    try {
-      if (ctx.error instanceof Deno.errors.NotFound) {
-        await ctx.respond({ status: 404 });
-      } else {
-        console.error(ctx.error);
-        await ctx.respond({ status: 500 });
-      }
-    } catch {}
-  };
 
   // NOTE: Using .bind can significantly increase perf compared to arrow functions.
   public all = this.add.bind(this, "ALL");
@@ -127,12 +131,16 @@ export default class Router {
     return this;
   }
 
-  async listen(port: number) {
+  public async listen(port: number) {
     const server = serve({ port });
     for await (const req of server) {
-      const ctx = Object.assign(req, { params: {} });
-      invokeHandlers(this.routes, ctx).catch((err) =>
-        this.errorHandler(Object.assign(ctx, { error: err }))
+      invokeHandlers(
+        this.routes,
+        Object.assign(req, {
+          params: {},
+          isDone: false,
+          error: Promise.resolve(null),
+        }),
       );
     }
   }

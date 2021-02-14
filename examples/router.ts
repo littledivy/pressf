@@ -9,6 +9,12 @@ ctx.get("/:hello", (ctx) => {
   ctx.respond({ body: `Oh, hello ${ctx.params["hello"]}!` });
 });
 
+ctx.get("/books/:genre/:title?", (ctx) => {
+  ctx.respond({
+    body: `genre: ${ctx.params["genre"]}, title: ${ctx.params["title"]}`,
+  });
+});
+
 // A simple logger middleware
 ctx.use(function (ctx) {
   console.log(ctx.method, ctx.url);

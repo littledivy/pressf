@@ -1,5 +1,5 @@
 import { Context, parse } from "../../pressf.ts";
-import { join } from "https://deno.land/std@0.84.0/path/mod.ts";
+import { join } from "https://deno.land/std@0.87.0/path/mod.ts";
 import { lookup } from "https://deno.land/x/media_types@v2.7.1/mod.ts";
 
 /**
@@ -19,8 +19,8 @@ export default (root: string, { prefix = "", home = "index.html" }: {
       const path = join(root, matches[1] === "" ? home : matches[1]);
       const file = await Deno.readFile(path);
       const info = await Deno.stat(path);
-      const headers = new Headers();
       const contentType = lookup(path);
+      const headers = new Headers();
       if (contentType) {
         headers.set("content-type", contentType);
       }
