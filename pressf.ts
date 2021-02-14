@@ -1,33 +1,31 @@
 import { serve, ServerRequest } from "https://deno.land/std/http/server.ts";
 
-type Params = { [key: string]: string };
-
-// Common pre-parsed routes
-const rootParse = { keys: false, pattern: /^\/\/\/?$/i };
+// Common pre-parsed routes:
+const rootParse = { keys: [], pattern: /^\/?$/i };
 const wildParse = { keys: ["wild"], pattern: /^\/(.*)\/?$/i };
 
 // Adapted from https://github.com/lukeed/regexparam/blob/master/src/index.js
 export function parse(
   str: RegExp | string,
   loose?: boolean,
-): { keys: string[] | boolean; pattern: RegExp } {
-  if (str instanceof RegExp) return { keys: false, pattern: str };
+): { keys: string[]; pattern: RegExp } {
+  if (str instanceof RegExp) return { keys: [], pattern: str };
   if (str === "/") return rootParse;
-  else if (str === "*") return wildParse;
-  var arr = str.split("/");
-  var len = arr.length;
-  var i = 0, c, keys = [], pattern = "";
-  while (i < len) {
-    var t = arr[i];
-    c = t[0];
-    i++;
+  if (str === "*") return wildParse;
+  const arr = str[0] === "/" ? str.slice(1).split("/") : str.split("/");
+  const keys = [];
+  const len = arr.length;
+  let pattern = "";
+  for (let i = 0; i < len; i++) {
+    const t = arr[i];
+    const c = t[0];
     if (c === "*") {
       keys.push("wild");
       pattern += "/(.*)";
     } else if (c === ":") {
-      var o = t.indexOf("?", 1);
-      var ext = t.indexOf(".", 1);
-      // Double negation turn out to be faster than Boolean() casts
+      const o = t.indexOf("?", 1);
+      const ext = t.indexOf(".", 1);
+      // Double negation turns out to be faster than Boolean() casts.
       // deno-lint-ignore no-extra-boolean-cast
       keys.push(t.substring(1, !!~o ? o : !!~ext ? ext : t.length));
       pattern += !!~o && !~ext ? "(?:/([^/]+?))?" : "/([^/]+?)";
@@ -44,91 +42,98 @@ export function parse(
   };
 }
 
+export async function invokeHandlers(routes: Route[], ctx: Context) {
+  const len = routes.length;
+  for (let i = 0; i < len; i++) {
+    const r = routes[i];
+    // NOTE: We're caching length here.
+    const keyLength = r.keys.length;
+    if (keyLength > 0 && r.pattern) {
+      const matches = r.pattern.exec(ctx.url);
+      if (matches) {
+        for (let inc = 0; inc < keyLength; inc++) {
+          ctx.params[r.keys[inc]] = matches[inc];
+        }
+      }
+    }
+    if (
+      r.pattern === undefined ||
+      (ctx.method === r.method && r.pattern.test(ctx.url))
+    ) {
+      for (const fn of r.handlers) {
+        await fn(ctx);
+      }
+    }
+  }
+}
+
+export type Context = ServerRequest & { params: Params } & { error?: Error };
+type Params = { [key: string]: string };
 type RouteFn = (ctx: Context) => void;
 type RoutePattern = RegExp;
-export type Context = ServerRequest & { params: Params };
-// XXX(TODO): Use ALL instead or ""?
 type Method =
-  | ""
-  | "GET"
-  | "POST"
-  | "HEAD"
-  | "PATCH"
-  | "OPTIONS"
+  | "ALL"
   | "CONNECT"
   | "DELETE"
-  | "TRACE"
+  | "GET"
+  | "HEAD"
+  | "OPTIONS"
+  | "PATCH"
   | "POST"
-  | "PUT";
-
-// A Route is a route when it has a routepattern otherwise it is treated as a middleware.
+  | "PUT"
+  | "TRACE";
+// A Route is a route when it has a route pattern otherwise it is treated as a middleware.
 type Route = {
   pattern?: RoutePattern;
   method: Method;
-  // XXX: Why not null?
-  keys: boolean | string[];
+  keys: string[];
   handlers: RouteFn[];
 };
+
 export default class Router {
-  // NOTE: This is transpiled into the constructor, therefore equivalent to this.routes = [];
-  routes: Route[] = [];
+  public routes: Route[] = [];
+  public errorHandler: (ctx: Context) => void = async (ctx) => {
+    // NOTE: The try...catch statement is necessary for BrokenPipe errors.
+    try {
+      if (ctx.error instanceof Deno.errors.NotFound) {
+        await ctx.respond({ status: 404 });
+      } else {
+        console.error(ctx.error);
+        await ctx.respond({ status: 500 });
+      }
+    } catch {}
+  };
 
   // NOTE: Using .bind can significantly increase perf compared to arrow functions.
-  public all = this.add.bind(this, "");
-  public get = this.add.bind(this, "GET");
-  public head = this.add.bind(this, "HEAD");
-  public patch = this.add.bind(this, "PATCH");
-  public options = this.add.bind(this, "OPTIONS");
+  public all = this.add.bind(this, "ALL");
   public connect = this.add.bind(this, "CONNECT");
   public delete = this.add.bind(this, "DELETE");
-  public trace = this.add.bind(this, "TRACE");
+  public get = this.add.bind(this, "GET");
+  public head = this.add.bind(this, "HEAD");
+  public options = this.add.bind(this, "OPTIONS");
+  public patch = this.add.bind(this, "PATCH");
   public post = this.add.bind(this, "POST");
   public put = this.add.bind(this, "PUT");
+  public trace = this.add.bind(this, "TRACE");
 
+  // Adds middleware: Applies the handlers to all methods and routes.
   public use(...handlers: RouteFn[]) {
-    this.routes.push({ keys: false, method: "", handlers });
+    this.routes.push({ keys: [], method: "ALL", handlers });
     return this;
   }
 
   public add(method: Method, route: string | RegExp, ...handlers: RouteFn[]) {
-    let { keys, pattern } = parse(route);
-    this.routes.push({ keys, method, handlers, pattern });
+    this.routes.push({ method, handlers, ...parse(route) });
     return this;
   }
 
   async listen(port: number) {
     const server = serve({ port });
     for await (const req of server) {
-      if (this.routes.length > 0) {
-        var i = 0,
-          len = this.routes.length;
-        while (i < len) {
-          var r = this.routes[i];
-          i++;
-          var params: Params = {};
-          // NOTE: We're caching length here.
-          var keyLength = typeof r.keys !== "boolean" ? r.keys.length : 0;
-          if (keyLength > 0 && r.pattern) {
-            var matches = r.pattern.exec(req.url);
-            // XXX(BRUH): Typescript is not really cooperating here, we've already added checks for r.keys being boolean.
-            if (matches && typeof r.keys !== "boolean") {
-              var inc = 0;
-              while (inc < keyLength) params[r.keys[inc]] = matches[++inc];
-            }
-          }
-          if (!r.pattern) {
-            r.handlers.forEach((fn: RouteFn) =>
-              fn(Object.assign(req, { params }) as Context)
-            );
-            continue;
-          }
-          if (r.pattern.test(req.url) && req.method == r.method) {
-            r.handlers.forEach((fn: RouteFn) =>
-              fn(Object.assign(req, { params }) as Context)
-            );
-          }
-        }
-      }
+      const ctx = Object.assign(req, { params: {} });
+      invokeHandlers(this.routes, ctx).catch((err) =>
+        this.errorHandler(Object.assign(ctx, { error: err }))
+      );
     }
   }
 }
