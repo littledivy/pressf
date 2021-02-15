@@ -1,4 +1,7 @@
-import { serve, ServerRequest } from "./deps.ts";
+export {
+  serve,
+  ServerRequest,
+} from "https://deno.land/std@0.87.0/http/server.ts";
 
 // Common pre-parsed routes:
 const rootParse = { keys: [], pattern: /^\/?$/i };
