@@ -11,7 +11,7 @@ export function parse(
 ): { keys: string[]; pattern: RegExp } {
   if (str instanceof RegExp) return { keys: [], pattern: str };
   if (str === "/") return rootParse;
-  if (str === "/*") return wildParse;
+  if (str === "*" || str === "/*") return wildParse;
   const arr = str[0] === "/" ? str.slice(1).split("/") : str.split("/");
   const keys = [];
   const len = arr.length;
