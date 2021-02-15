@@ -1,23 +1,28 @@
 import PressF from "../pressf.ts";
 
-const ctx = new PressF();
-ctx.get("/", (ctx) => {
-  ctx.respond({ body: "Hello World\n" });
+const app = new PressF();
+app.get("/", (app) => {
+  app.respond({ body: "Hello World\n" });
 });
 
-ctx.get("/:hello", (ctx) => {
-  ctx.respond({ body: `Oh, hello ${ctx.params["hello"]}!` });
+app.get("/:hello", (app) => {
+  app.respond({ body: `Oh, hello ${app.params["hello"]}!` });
 });
 
-ctx.get("/books/:genre/:title?", (ctx) => {
-  ctx.respond({
-    body: `genre: ${ctx.params["genre"]}, title: ${ctx.params["title"]}`,
+app.get(
+  "/static/*",
+  (app) => app.respond({ body: `wild: ${app.params["wild"]}` }),
+);
+
+app.get("/books/:genre/:title?", (app) => {
+  app.respond({
+    body: `genre: ${app.params["genre"]}, title: ${app.params["title"]}`,
   });
 });
 
 // A simple logger middleware
-ctx.use(function (ctx) {
-  console.log(ctx.method, ctx.url);
+app.use(function (app) {
+  console.log(app.method, app.url);
 });
 
-await ctx.listen(8080);
+await app.listen(8080);
