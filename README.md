@@ -7,14 +7,14 @@ other frameworks.
 ## Usage
 
 ```typescript
-import PressF from "https://deno.land/x/pressf/pressf.ts"
+import PressF from "https://deno.land/x/pressf/pressf.ts";
 
-const app = new PressF()
+const app = new PressF();
 app.get("/", (ctx) => {
-  ctx.respond({ body: "Hello World!" })
-})
+  ctx.respond({ body: "Hello World!" });
+});
 
-await app.listen(8080)
+await app.listen(8080);
 ```
 
 ## Benchmarks
@@ -32,13 +32,13 @@ await app.listen(8080)
 #### `static` - Minimal Static file server middleware.
 
 ```typescript
-import PressF from "https://deno.land/x/pressf/pressf.ts"
-import serveStatic from "https://deno.land/x/pressf/middlewares/pressf-static/mod.ts"
+import PressF from "https://deno.land/x/pressf/pressf.ts";
+import serveStatic from "https://deno.land/x/pressf/middlewares/pressf-static/mod.ts";
 
-const app = new PressF()
-app.use(serveStatic("./examples/static"))
+const app = new PressF();
+app.use(serveStatic("./examples/static"));
 
-await app.listen(8080)
+await app.listen(8080);
 ```
 
 #### `logger` - Configurable request logging middleware
@@ -46,13 +46,13 @@ await app.listen(8080)
 > Adapted from [ABC](https://deno.land/x/abc)
 
 ```typescript
-import PressF from "https://deno.land/x/pressf/pressf.ts"
-import logger from "https://deno.land/x/pressf/middlewares/pressf-logger/mod.ts"
+import PressF from "https://deno.land/x/pressf/pressf.ts";
+import logger from "https://deno.land/x/pressf/middlewares/pressf-logger/mod.ts";
 
-const app = new PressF()
-app.use(logger())
+const app = new PressF();
+app.use(logger());
 
-await app.listen(8080)
+await app.listen(8080);
 ```
 
 ## LICENSE
