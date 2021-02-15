@@ -12,11 +12,7 @@ import {
   ServerRequest,
 } from "./deps.ts";
 
-async function storeDelayed(
-  str: any,
-  storage: any[],
-  after = 0,
-): Promise<number> {
+async function storeDelayed(str: any, storage: any[], after = 0) {
   await delay(after);
   return storage.push(str);
 }
@@ -29,7 +25,6 @@ async function run<S extends State = DefaultState>(app: PressF<S>, {
   url: string;
   method: string;
   params?: Context["params"];
-  state?: Context<S>["state"];
 }) {
   const req = new ServerRequest();
   req.url = url;
@@ -76,7 +71,7 @@ Deno.test("[invokeHandlers] state", async function () {
     },
   );
 
-  await run<State>(app, { url: "/", method: "GET", state });
+  await run<State>(app, { url: "/", method: "GET" });
   await delay(400);
   assertEquals(storage, [state.data]);
 });
@@ -121,6 +116,7 @@ Deno.test("[invokeHandlers] error handling", async function () {
     "error",
     async (err) => await storeDelayed("caught", storage),
   );
+
   await run(app, { url: "/", method: "GET" });
   await delay(400);
   assertEquals(storage, ["home", "caught"]);
