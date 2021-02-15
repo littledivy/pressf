@@ -1,7 +1,7 @@
 import { parse } from "../pressf.ts";
-import { assertEquals } from "https://deno.land/std@0.84.0/testing/asserts.ts";
+import { assertEquals } from "./deps.ts";
 
-Deno.test("parse slashes", function () {
+Deno.test("[parse] slashes", function () {
   assertEquals(parse("/"), { keys: [], pattern: /^\/?$/i });
   assertEquals(parse("foo/bar"), { keys: [], pattern: /^\/foo\/bar\/?$/i });
   assertEquals(
@@ -10,18 +10,18 @@ Deno.test("parse slashes", function () {
   );
 });
 
-Deno.test("ending slash", function () {
+Deno.test("[parse] ending slash", function () {
   assertEquals(parse("foo/"), { keys: [], pattern: /^\/foo\/\/?$/i });
 });
 
-Deno.test("starting slash", function () {
+Deno.test("[parse] starting slash", function () {
   assertEquals(parse("/books/:genre/:title?"), {
     keys: ["genre", "title"],
     pattern: /^\/books\/([^/]+?)(?:\/([^/]+?))?\/?$/i,
   });
 });
 
-Deno.test("params", function () {
+Deno.test("[parse] params", function () {
   assertEquals(
     parse("foo/:id"),
     { keys: ["id"], pattern: /^\/foo\/([^/]+?)\/?$/i },
