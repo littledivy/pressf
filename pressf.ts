@@ -157,10 +157,7 @@ export default class Router<S extends State = DefaultState>
             await fn(ctx);
           } catch (error) {
             return this.dispatchEvent(
-              new PressFErrorEvent<S>("error", {
-                error,
-                ctx,
-              }),
+              new PressFErrorEvent<S>("error", { error, ctx }),
             );
           }
         }
@@ -173,11 +170,7 @@ export default class Router<S extends State = DefaultState>
     for await (const req of server) {
       this.invokeHandlers(
         this.routes,
-        Object.assign(req, {
-          params: {},
-          state: this.state,
-          isDone: false,
-        }),
+        Object.assign(req, { params: {}, state: this.state, isDone: false }),
       );
     }
   }
