@@ -41,14 +41,13 @@ Deno.test("[invokeHandlers] execution order", async function () {
 
   app.get(
     "/",
-    async (ctx: Context) => await storeDelayed("home", storage, 200),
-    async (ctx: Context) => await storeDelayed("secondHome", storage),
+    async (ctx) => await storeDelayed("home", storage, 200),
+    async (ctx) => await storeDelayed("secondHome", storage),
   );
 
   app.get(
     "/*",
-    async (ctx: Context) =>
-      await storeDelayed(`${ctx.params["wild"]}`, storage, 100),
+    async (ctx) => await storeDelayed(`${ctx.params["wild"]}`, storage, 100),
   );
 
   app.use(async () => await storeDelayed("middleware", storage));
@@ -66,7 +65,7 @@ Deno.test("[invokeHandlers] state", async function () {
 
   app.get(
     "/",
-    async (ctx: Context<State>) => {
+    async (ctx) => {
       await storeDelayed(ctx.state.data, storage, 200);
     },
   );
@@ -103,16 +102,16 @@ Deno.test("[invokeHandlers] error handling", async function () {
   const storage: string[] = [];
 
   app.use(
-    async (ctx: Context) => {
+    async (ctx) => {
       await storeDelayed("home", storage);
       throw new Error("Uppps");
     },
-    async (ctx: Context) => {
+    async (ctx) => {
       await storeDelayed("never", storage);
     },
   );
 
-  app.errorHandler = async (ctx: Context) => {
+  app.errorHandler = async (ctx) => {
     await storeDelayed("caught", storage);
   };
 

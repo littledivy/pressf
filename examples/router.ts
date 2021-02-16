@@ -6,7 +6,7 @@ app.get("/", (ctx) => {
 });
 
 app.get("/:hello", (ctx) => {
-  ctx.respond({ body: `Oh, hello ${app.params["hello"]}!` });
+  ctx.respond({ body: `Oh, hello ${ctx.params["hello"]}!` });
 });
 
 app.get(
