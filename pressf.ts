@@ -151,6 +151,11 @@ export default class Router<S extends State = DefaultState> {
         }
       }
     }
+    if (!ctx.isDone) {
+      return this.errorHandler(
+        Object.assign(ctx, { error: new Deno.errors.NotFound() }),
+      );
+    }
   }
 
   async listen(port: number) {
