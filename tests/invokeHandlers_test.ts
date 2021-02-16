@@ -31,7 +31,7 @@ async function run<S extends State = DefaultState>(app: PressF<S>, {
   req.method = method;
   return await app.invokeHandlers(
     app.routes,
-    Object.assign(req, { params, state: app.state, isDone: false }),
+    Object.assign(req, { params, state: app.state, isDone: true }),
   );
 }
 
