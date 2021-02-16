@@ -112,10 +112,9 @@ Deno.test("[invokeHandlers] error handling", async function () {
     },
   );
 
-  app.addEventListener(
-    "error",
-    async (err) => await storeDelayed("caught", storage),
-  );
+  app.errorHandler = async (ctx: Context) => {
+    await storeDelayed("caught", storage);
+  };
 
   await run(app, { url: "/", method: "GET" });
   await delay(400);

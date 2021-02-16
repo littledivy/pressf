@@ -56,6 +56,7 @@ export type Context<S extends State = DefaultState> = ServerRequest & {
   params: Params;
   state: S;
   isDone: Boolean;
+  error?: Error;
 };
 export type DefaultState = Record<string, unknown>;
 export type State = Record<string | number | symbol, unknown>;
@@ -74,36 +75,11 @@ type Method =
   | "PUT"
   | "TRACE";
 
-// NOTE: This is necessary to access the PressFErrorEvent properties in event listeners.
-declare global {
-  interface EventTarget {
-    addEventListener(
-      type: string,
-      listener: (event: PressFErrorEvent) => void,
-      options?: boolean | AddEventListenerOptions,
-    ): void;
-  }
-}
-
-export class PressFErrorEvent<S extends State = DefaultState>
-  extends ErrorEvent {
-  ctx: Context<S>;
-  constructor(
-    type: string,
-    data: { error: Error; ctx: Context<S> },
-  ) {
-    super(type, { error: data.error, message: data.error.message });
-    this.ctx = data.ctx;
-  }
-}
-
-export default class Router<S extends State = DefaultState>
-  extends EventTarget {
+export default class Router<S extends State = DefaultState> {
   public routes: Route<S>[] = [];
   public state: S;
 
   constructor(state: S = {} as S) {
-    super();
     this.state = state;
   }
 
@@ -134,6 +110,17 @@ export default class Router<S extends State = DefaultState>
     return this;
   }
 
+  async errorHandler<S extends State = DefaultState>(ctx: Context<S>) {
+    if (ctx.isDone) {
+      console.error(ctx.error);
+    } else if (ctx.error instanceof Deno.errors.NotFound) {
+      await ctx.respond({ status: 404 });
+    } else {
+      console.error(ctx.error);
+      await ctx.respond({ status: 500 });
+    }
+  }
+
   async invokeHandlers<S extends State = DefaultState>(
     routes: Route<S>[],
     ctx: Context<S>,
@@ -159,9 +146,7 @@ export default class Router<S extends State = DefaultState>
           try {
             await fn(ctx);
           } catch (error) {
-            return this.dispatchEvent(
-              new PressFErrorEvent<S>("error", { error, ctx }),
-            );
+            return this.errorHandler(Object.assign(ctx, { error }));
           }
         }
       }
