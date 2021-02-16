@@ -1,28 +1,28 @@
 import PressF from "../pressf.ts";
 
 const app = new PressF();
-app.get("/", (app) => {
-  app.respond({ body: "Hello World\n" });
+app.get("/", (ctx) => {
+  ctx.respond({ body: "Hello World\n" });
 });
 
-app.get("/:hello", (app) => {
-  app.respond({ body: `Oh, hello ${app.params["hello"]}!` });
+app.get("/:hello", (ctx) => {
+  ctx.respond({ body: `Oh, hello ${app.params["hello"]}!` });
 });
 
 app.get(
   "/static/*",
-  (app) => app.respond({ body: `wild: ${app.params["wild"]}` }),
+  (ctx) => ctx.respond({ body: `wild: ${ctx.params["wild"]}` }),
 );
 
-app.get("/books/:genre/:title?", (app) => {
-  app.respond({
-    body: `genre: ${app.params["genre"]}, title: ${app.params["title"]}`,
+app.get("/books/:genre/:title?", (ctx) => {
+  ctx.respond({
+    body: `genre: ${ctx.params["genre"]}, title: ${ctx.params["title"]}`,
   });
 });
 
 // A simple logger middleware
-app.use(function (app) {
-  console.log(app.method, app.url);
+app.use(function (ctx) {
+  console.log(ctx.method, ctx.url);
 });
 
 await app.listen(8080);
