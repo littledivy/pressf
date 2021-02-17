@@ -152,7 +152,6 @@ export default class Router<S extends State = DefaultState> {
       }
     }
     // Responds to all requests which are not handled with status code 404.
-    // NOTE: This only works if users await req.respond() inside their handlers.
     if (!ctx.isDone) {
       return this.errorHandler(
         Object.assign(ctx, { error: new Deno.errors.NotFound() }),
