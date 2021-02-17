@@ -58,7 +58,7 @@ export type Context<S extends State = DefaultState> = ServerRequest & {
   isDone: Boolean;
   error?: Error;
 };
-export type DefaultState = Record<string, unknown>;
+export type DefaultState = Record<string, any>;
 export type State = Record<string | number | symbol, unknown>;
 type Params = { [key: string]: string };
 type RouteFn<S extends State = DefaultState> = (ctx: Context<S>) => void;
