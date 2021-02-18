@@ -9,25 +9,39 @@ export default (root: string, { prefix = "", home = "index.html" }: {
   prefix?: string;
   home?: string;
 } = {}) => {
-  const routePattern = parse(`${prefix}/*`).pattern;
   return async (ctx: Context) => {
+    const routePattern = parse(`${prefix}/*`).pattern;
     const matches = routePattern.exec(ctx.url);
     if (
       matches && matches.length == 2 &&
       (ctx.method === "HEAD" || ctx.method === "GET")
     ) {
-      const path = join(root, matches[1] === "" ? home : matches[1]);
-      const file = await Deno.readFile(path);
-      const info = await Deno.stat(path);
-      const contentType = lookup(path);
-      const headers = new Headers();
-      if (contentType) {
-        headers.set("content-type", contentType);
-      }
-      if (info.mtime) {
-        headers.set("last-modified", info.mtime.toUTCString());
-      }
-      await ctx.respond({ body: file, headers });
+      return await ctx.respond(
+        await createResponse(
+          root,
+          matches[1] === "" ? home : matches[1],
+          home,
+        ),
+      );
     }
   };
 };
+
+export async function createResponse(
+  root: string,
+  url: string,
+  home = "index.html",
+) {
+  const path = join(root, url === "/" ? home : url);
+  const file = await Deno.readFile(path);
+  const info = await Deno.stat(path);
+  const contentType = lookup(path);
+  const headers = new Headers();
+  if (contentType) {
+    headers.set("content-type", contentType);
+  }
+  if (info.mtime) {
+    headers.set("last-modified", info.mtime.toUTCString());
+  }
+  return { body: file, headers, status: 200 };
+}
