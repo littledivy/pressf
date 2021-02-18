@@ -4,7 +4,7 @@ import { Context } from "../../pressf.ts";
 * Adapted from https://deno.land/x/abc@v1.2.3/middleware/logger.ts
 **/
 
-type Formatter = (c: Context) => string;
+type Formatter = (ctx: Context) => string;
 
 export interface LoggerConfig {
   formatter: Formatter;
