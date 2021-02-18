@@ -9,8 +9,8 @@ export default (root: string, { prefix = "", home = "index.html" }: {
   prefix?: string;
   home?: string;
 } = {}) => {
+  const routePattern = parse(`${prefix}/*`).pattern;
   return async (ctx: Context) => {
-    const routePattern = parse(`${prefix}/*`).pattern;
     const matches = routePattern.exec(ctx.url);
     if (
       matches && matches.length == 2 &&
