@@ -165,7 +165,7 @@ export default class Router<S extends State = DefaultState> {
   async listen(portOrOptions: number | HTTPOptions | HTTPSOptions) {
     const server = typeof portOrOptions === "number"
       ? serve({ port: portOrOptions })
-      : options.certFile
+      : "certFile" in portOrOptions
       ? serveTLS(portOrOptions)
       : serve(portOrOptions);
     for await (const req of server) {
