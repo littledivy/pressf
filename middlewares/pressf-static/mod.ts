@@ -1,5 +1,5 @@
 import { Context, parse } from "../../pressf.ts";
-import { join } from "https://deno.land/std@0.87.0/path/mod.ts";
+import { join } from "https://deno.land/std@0.88.0/path/mod.ts";
 import { lookup } from "https://deno.land/x/media_types@v2.7.1/mod.ts";
 
 /**

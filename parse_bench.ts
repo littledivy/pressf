@@ -1,7 +1,7 @@
 import {
   bench,
   runBenchmarks,
-} from "https://deno.land/std@0.87.0/testing/bench.ts";
+} from "https://deno.land/std@0.88.0/testing/bench.ts";
 import { parse } from "./pressf.ts";
 
 const routeFixtures = ["/", "*"];
