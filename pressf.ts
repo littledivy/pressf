@@ -1,7 +1,10 @@
 import {
+  HTTPOptions,
+  HTTPSOptions,
   serve,
   ServerRequest,
-} from "https://deno.land/std@0.87.0/http/server.ts";
+  serveTLS,
+} from "https://deno.land/std@0.88.0/http/server.ts";
 
 // Common pre-parsed routes:
 const rootParse = { keys: [], pattern: /^\/?$/i };
@@ -159,8 +162,12 @@ export default class Router<S extends State = DefaultState> {
     }
   }
 
-  async listen(port: number) {
-    const server = serve({ port });
+  async listen(portOrOptions: number | HTTPOptions | HTTPSOptions) {
+    const server = typeof portOrOptions === "number"
+      ? serve({ port: portOrOptions })
+      : options.certFile
+      ? serveTLS(portOrOptions)
+      : serve(portOrOptions);
     for await (const req of server) {
       this.invokeHandlers(
         this.routes,
