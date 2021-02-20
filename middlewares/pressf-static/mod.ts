@@ -17,31 +17,38 @@ export default (root: string, { prefix = "", home = "index.html" }: {
       (ctx.method === "HEAD" || ctx.method === "GET")
     ) {
       return await ctx.respond(
-        await createResponse(
-          root,
-          matches[1] === "" ? home : matches[1],
+        await createResponse(root, {
+          url: matches[1] === "" ? home : matches[1],
           home,
-        ),
+        })(ctx),
       );
     }
   };
 };
 
-export async function createResponse(
+export function createResponse(
   root: string,
-  url: string,
-  home = "index.html",
+  { url, home = "index.html" }: { url?: string; home?: string } = {},
 ) {
-  const path = join(root, url === "/" ? home : url);
-  const file = await Deno.readFile(path);
-  const info = await Deno.stat(path);
-  const contentType = lookup(path);
-  const headers = new Headers();
-  if (contentType) {
-    headers.set("content-type", contentType);
-  }
-  if (info.mtime) {
-    headers.set("last-modified", info.mtime.toUTCString());
-  }
-  return { body: file, headers, status: 200 };
+  return async (ctx: Context) => {
+    const actualUrl = typeof url === "string" ? url : ctx.url;
+    const path = join(root, actualUrl === "/" ? home : actualUrl);
+    const info = await Deno.stat(path);
+    const contentType = lookup(path);
+    const ifModifiedSince = ctx.headers.get("if-modified-since");
+    const headers = new Headers();
+    if (contentType) {
+      headers.set("content-type", contentType);
+    }
+    if (info.mtime) {
+      headers.set("last-modified", info.mtime.toUTCString());
+      if (
+        ifModifiedSince &&
+        info.mtime.getTime() < (new Date(ifModifiedSince).getTime() + 1000)
+      ) {
+        return { headers, status: 304 };
+      }
+    }
+    return { body: await Deno.readFile(path), headers, status: 200 };
+  };
 }
