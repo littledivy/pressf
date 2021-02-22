@@ -16,17 +16,15 @@ export default (root: string, { prefix = "", home = "index.html" }: {
       matches && matches.length == 2 &&
       (ctx.method === "HEAD" || ctx.method === "GET")
     ) {
-      return await ctx.respond(
-        await createResponse(root, {
-          url: matches[1] === "" ? home : matches[1],
-          home,
-        })(ctx),
-      );
+      return await respondWithFile(root, {
+        url: matches[1] === "" ? home : matches[1],
+        home,
+      })(ctx);
     }
   };
 };
 
-export function createResponse(
+export function respondWithFile(
   root: string,
   { url, home = "index.html" }: { url?: string; home?: string } = {},
 ) {
@@ -46,9 +44,13 @@ export function createResponse(
         ifModifiedSince &&
         info.mtime.getTime() < (new Date(ifModifiedSince).getTime() + 1000)
       ) {
-        return { headers, status: 304 };
+        return await ctx.respond({ headers, status: 304 });
       }
     }
-    return { body: await Deno.readFile(path), headers, status: 200 };
+    return await ctx.respond({
+      body: await Deno.readFile(path),
+      headers,
+      status: 200,
+    });
   };
 }
