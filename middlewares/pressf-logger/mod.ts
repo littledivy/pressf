@@ -4,15 +4,18 @@ import { Context } from "../../pressf.ts";
 * Adapted from https://deno.land/x/abc@v1.2.3/middleware/logger.ts
 **/
 
-export type Formatter = (c: Context) => string;
+type Formatter = (ctx: Context) => string;
 
-const encoder = new TextEncoder();
+export interface LoggerConfig {
+  formatter: Formatter;
+  output: { rid: number };
+}
 
-export const DefaultFormatter: Formatter = (req) => {
+export const DefaultFormatter: Formatter = (ctx: Context) => {
   const time = new Date().toISOString();
-  const method = req.method;
-  const url = req.url || "/";
-  const protocol = req.proto;
+  const method = ctx.method;
+  const url = ctx.url || "/";
+  const protocol = ctx.proto;
 
   return `${time} ${method} ${url} ${protocol}\n`;
 };
@@ -25,19 +28,9 @@ export const DefaultLoggerConfig: LoggerConfig = {
 export default function logger(
   config: LoggerConfig = DefaultLoggerConfig,
 ) {
-  if (config.formatter == null) {
-    config.formatter = DefaultLoggerConfig.formatter;
-  }
-  if (config.output == null) {
-    config.output = Deno.stdout;
-  }
-  return (c: Context) => {
-    Deno.writeSync(config.output!.rid, encoder.encode(config.formatter!(c)));
-  };
-}
-
-export interface LoggerConfig {
-  formatter?: Formatter;
-  // Default is Deno.stdout.
-  output?: { rid: number };
+  return async (ctx: Context) =>
+    await Deno.write(
+      config.output.rid,
+      new TextEncoder().encode(config.formatter(ctx)),
+    );
 }

@@ -1,10 +1,8 @@
-import PressF, { Context } from "../pressf.ts";
+import PressF from "../pressf.ts";
 import serveStatic from "../middlewares/pressf-static/mod.ts";
-import errorHandler from "../middlewares/pressf-error-handler/mod.ts";
 
-const ctx = new PressF();
+const app = new PressF();
 
-ctx.use(serveStatic(new URL("./static", import.meta.url).pathname));
-ctx.use(errorHandler);
+app.use(serveStatic(new URL("./static", import.meta.url).pathname));
 
-await ctx.listen(8080);
+await app.listen(8080);

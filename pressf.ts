@@ -1,4 +1,10 @@
-import { serve, ServerRequest } from "https://deno.land/std/http/server.ts";
+import {
+  HTTPOptions,
+  HTTPSOptions,
+  serve,
+  ServerRequest,
+  serveTLS,
+} from "https://deno.land/std@0.88.0/http/server.ts";
 
 // Common pre-parsed routes:
 const rootParse = { keys: [], pattern: /^\/?$/i };
@@ -11,7 +17,7 @@ export function parse(
 ): { keys: string[]; pattern: RegExp } {
   if (str instanceof RegExp) return { keys: [], pattern: str };
   if (str === "/") return rootParse;
-  if (str === "*") return wildParse;
+  if (str === "*" || str === "/*") return wildParse;
   const arr = str[0] === "/" ? str.slice(1).split("/") : str.split("/");
   const keys = [];
   const len = arr.length;
@@ -42,49 +48,23 @@ export function parse(
   };
 }
 
-export async function invokeHandlers(routes: Route[], ctx: Context) {
-  ctx.done.then(() => ctx.isDone = true);
-  const len = routes.length;
-  for (let i = 0; i < len; i++) {
-    const r = routes[i];
-    // NOTE: We're caching length here.
-    const keyLength = r.keys.length;
-    if (keyLength > 0 && r.pattern) {
-      const matches = r.pattern.exec(ctx.url);
-      if (matches) {
-        let inc = 0;
-        while (inc < keyLength) ctx.params[r.keys[inc]] = matches[++inc];
-      }
-    }
-    if (
-      r.pattern === undefined ||
-      (ctx.method === r.method && r.pattern.test(ctx.url))
-    ) {
-      for (const fn of r.handlers) {
-        try {
-          await fn(ctx);
-          if (ctx.isDone) return;
-        } catch (err) {
-          if (err instanceof Deno.errors.BrokenPipe) {
-            console.error(err);
-            return;
-          }
-          ctx.error = Promise.reject(err);
-        }
-      }
-    }
-  }
-}
-
-export type Context =
-  & ServerRequest
-  & { params: Params }
-  & { isDone: Boolean }
-  & {
-    error: Promise<null>;
-  };
+// A Route is a route when it has a route pattern otherwise it is treated as a middleware.
+export type Route<S extends State = DefaultState> = {
+  pattern?: RoutePattern;
+  method: Method;
+  keys: string[];
+  handlers: RouteFn<S>[];
+};
+export type Context<S extends State = DefaultState> = ServerRequest & {
+  params: Params;
+  state: S;
+  isDone: Boolean;
+  error?: Error;
+};
+export type DefaultState = Record<string, any>;
+export type State = Record<string | number | symbol, unknown>;
 type Params = { [key: string]: string };
-type RouteFn = (ctx: Context) => void;
+type RouteFn<S extends State = DefaultState> = (ctx: Context<S>) => void;
 type RoutePattern = RegExp;
 type Method =
   | "ALL"
@@ -97,50 +77,101 @@ type Method =
   | "POST"
   | "PUT"
   | "TRACE";
-// A Route is a route when it has a route pattern otherwise it is treated as a middleware.
-type Route = {
-  pattern?: RoutePattern;
-  method: Method;
-  keys: string[];
-  handlers: RouteFn[];
-};
 
-export default class Router {
-  public routes: Route[] = [];
+export default class Router<S extends State = DefaultState> {
+  public routes: Route<S>[] = [];
+  public state: S;
+
+  constructor(state: S = {} as S) {
+    this.state = state;
+  }
 
   // NOTE: Using .bind can significantly increase perf compared to arrow functions.
-  public all = this.add.bind(this, "ALL");
-  public connect = this.add.bind(this, "CONNECT");
-  public delete = this.add.bind(this, "DELETE");
-  public get = this.add.bind(this, "GET");
-  public head = this.add.bind(this, "HEAD");
-  public options = this.add.bind(this, "OPTIONS");
-  public patch = this.add.bind(this, "PATCH");
-  public post = this.add.bind(this, "POST");
-  public put = this.add.bind(this, "PUT");
-  public trace = this.add.bind(this, "TRACE");
+  all = this.add.bind(this, "ALL");
+  connect = this.add.bind(this, "CONNECT");
+  delete = this.add.bind(this, "DELETE");
+  get = this.add.bind(this, "GET");
+  head = this.add.bind(this, "HEAD");
+  options = this.add.bind(this, "OPTIONS");
+  patch = this.add.bind(this, "PATCH");
+  post = this.add.bind(this, "POST");
+  put = this.add.bind(this, "PUT");
+  trace = this.add.bind(this, "TRACE");
 
   // Adds middleware: Applies the handlers to all methods and routes.
-  public use(...handlers: RouteFn[]) {
+  use(...handlers: RouteFn<S>[]) {
     this.routes.push({ keys: [], method: "ALL", handlers });
     return this;
   }
 
-  public add(method: Method, route: string | RegExp, ...handlers: RouteFn[]) {
+  add(
+    method: Method,
+    route: string | RegExp,
+    ...handlers: RouteFn<S>[]
+  ) {
     this.routes.push({ method, handlers, ...parse(route) });
     return this;
   }
 
-  public async listen(port: number) {
-    const server = serve({ port });
+  async errorHandler<S extends State = DefaultState>(ctx: Context<S>) {
+    if (ctx.isDone) {
+      console.error(ctx.error);
+    } else if (ctx.error instanceof Deno.errors.NotFound) {
+      await ctx.respond({ status: 404 });
+    } else {
+      console.error(ctx.error);
+      await ctx.respond({ status: 500 });
+    }
+  }
+
+  async invokeHandlers<S extends State = DefaultState>(
+    routes: Route<S>[],
+    ctx: Context<S>,
+  ) {
+    ctx.done.then(() => ctx.isDone = true);
+    // NOTE: We're caching length here.
+    const len = routes.length;
+    for (let i = 0; i < len; i++) {
+      const r = routes[i];
+      const keyLength = r.keys.length;
+      let matches: null | string[] = null;
+      if (
+        r.pattern === undefined ||
+        (ctx.method === r.method && (matches = r.pattern.exec(ctx.url)))
+      ) {
+        if (keyLength > 0 && r.pattern) {
+          if (matches) {
+            let inc = 0;
+            while (inc < keyLength) ctx.params[r.keys[inc]] = matches[++inc];
+          }
+        }
+        for (const fn of r.handlers) {
+          try {
+            await fn(ctx);
+          } catch (error) {
+            return this.errorHandler(Object.assign(ctx, { error }));
+          }
+        }
+      }
+    }
+    // Responds to all requests which are not handled with status code 404.
+    if (!ctx.isDone) {
+      return this.errorHandler(
+        Object.assign(ctx, { error: new Deno.errors.NotFound() }),
+      );
+    }
+  }
+
+  async listen(portOrOptions: number | HTTPOptions | HTTPSOptions) {
+    const server = typeof portOrOptions === "number"
+      ? serve({ port: portOrOptions })
+      : "certFile" in portOrOptions
+      ? serveTLS(portOrOptions)
+      : serve(portOrOptions);
     for await (const req of server) {
-      invokeHandlers(
+      this.invokeHandlers(
         this.routes,
-        Object.assign(req, {
-          params: {},
-          isDone: false,
-          error: Promise.resolve(null),
-        }),
+        Object.assign(req, { params: {}, state: this.state, isDone: false }),
       );
     }
   }
