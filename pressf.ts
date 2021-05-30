@@ -4,7 +4,7 @@ import {
   serve,
   ServerRequest,
   serveTLS,
-} from "https://deno.land/std@0.88.0/http/server.ts";
+} from "https://deno.land/std@0.97.0/http/server.ts";
 
 // Common pre-parsed routes:
 const rootParse = { keys: [], pattern: /^\/?$/i };
